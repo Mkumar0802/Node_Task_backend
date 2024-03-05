@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../model/user");
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcrypt');
 
 const signup = async (req, res) => {
   try {
@@ -60,50 +61,128 @@ function generateResetToken() {
 
 
 
+
+// Function to send OTP to the user's email
+const sendOTP = async (email, otp) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+  secure: false,
+      auth: {
+        user: "mkumar0802@gmail.com",
+        pass: "snip nsim olgu vzgo",
+      },
+    });
+
+      const mailOptions = {
+          from: 'muthukumar0802@gmail.com',
+          to: email,
+          subject: 'Password Reset OTP',
+          text: `Your OTP for password reset is: ${otp}`,
+      };
+
+      await transporter.sendMail(mailOptions);
+      return true;
+  } catch (error) {
+      console.error('Error sending OTP:', error);
+      return false;
+  }
+};
+
+
+// Function to generate a random OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+
+// Function to encrypt the OTP
+const encryptOTP = async (otp) => {
+  const salt = await bcrypt.genSalt(10);
+  const hashedOTP = await bcrypt.hash(otp, salt);
+  return hashedOTP;
+};
+
+
+
+
 const forgetPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-      // Check if the user with the provided email exists
       const user = await User.findOne({ email });
 
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
 
-      // Generate a unique token for password reset (You can use packages like 'crypto' to generate a secure token)
-      const resetToken = generateResetToken();
+      const plainOTP = generateOTP();
+      const otpSent = await sendOTP(email, plainOTP);
 
-      // Save the reset token in the user document
-      user.resetToken = resetToken;
+      if (!otpSent) {
+          return res.status(500).json({ message: 'Failed to send OTP. Please try again later.' });
+      }
+
+      const hashedOTP = await encryptOTP(plainOTP);
+      user.resetOTP = hashedOTP;
+
+      // Set token expiration time to 30 minutes from now
+      const tokenExpiration = new Date();
+      tokenExpiration.setMinutes(tokenExpiration.getMinutes() + 1);
+      user.resetTokenExpiration = tokenExpiration;
+
       await user.save();
 
-      // Send password reset link to the user's email
-      const transporter = nodemailer.createTransport({
-          host: "mail.athulyahomecare.com",
-          port: 465,
-          secure: true, // true for 465, false for other ports
-          auth: {
-              user: "noreply@athulyaseniorcare.com", // Change to your email address
-              pass: "Athulya@123", // Change to your password
-          },
-      });
-
-      const mailOptions = {
-          from: 'noreply@athulyaseniorcare.com',
-          to: email,
-          subject: 'Password Reset Request',
-          text: `Click the following link to reset your password: http://localhost:3000/resetpassword/${resetToken}`,
-      };
-
-      await transporter.sendMail(mailOptions);
-
-      res.status(200).json({ message: 'Password reset link sent to your email.' });
+      res.status(200).json({ message: 'OTP sent to your email for password reset.' });
   } catch (error) {
-      console.error('Error sending password reset link:', error);
+      console.error('Error sending password reset OTP:', error);
+      res.status(500).json({ message: 'Internal server error or OTP Expries' });
+  }
+};
+
+
+// Function to compare OTPs
+const compareOTP = async (otp, hashedOTP) => {
+  return await bcrypt.compare(otp, hashedOTP);
+};
+
+const resetPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  try {
+      const user = await User.findOne({ email });
+
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      const isOTPValid = await compareOTP(otp, user.resetOTP);
+
+      if (!isOTPValid) {
+          return res.status(400).json({ message: 'Invalid OTP' });
+      }
+
+      // const salt = await bcrypt.genSalt(10);
+      // const hashedPassword = await bcrypt.hash(newPassword, salt);
+      user.password =  newPassword;
+      user.resetOTP = null;
+      user.resetTokenExpiration = null;
+      await user.save();
+
+      res.status(200).json({ message: 'Password reset successful' });
+  } catch (error) {
+      console.error('Error resetting password:', error);
       res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+
+
+
+
 
 
 
@@ -140,5 +219,7 @@ module.exports = {
   signin,
   signup,
   forgetPassword,
-  token
+  token,
+  resetPassword
+
 };
