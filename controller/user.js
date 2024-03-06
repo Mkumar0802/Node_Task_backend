@@ -129,7 +129,7 @@ const forgetPassword = async (req, res) => {
     user.resetOTP = hashedOTP;
 
     // Set token expiration time to 30 minutes from now
-    const tokenExpiration = new Date(Date.now() + 1 * 60 * 1000); // 30 minutes in milliseconds
+    const tokenExpiration = new Date(Date.now() + 2 * 60 * 1000); // 30 minutes in milliseconds
     user.resetTokenExpiration = tokenExpiration;
 
     await user.save();
