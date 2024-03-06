@@ -112,35 +112,38 @@ const forgetPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-      const user = await User.findOne({ email });
+    const user = await User.findOne({ email });
 
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-      const plainOTP = generateOTP();
-      const otpSent = await sendOTP(email, plainOTP);
+    const plainOTP = generateOTP();
+    const otpSent = await sendOTP(email, plainOTP);
 
-      if (!otpSent) {
-          return res.status(500).json({ message: 'Failed to send OTP. Please try again later.' });
-      }
+    if (!otpSent) {
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again later.' });
+    }
 
-      const hashedOTP = await encryptOTP(plainOTP);
-      user.resetOTP = hashedOTP;
+    const hashedOTP = await encryptOTP(plainOTP);
+    user.resetOTP = hashedOTP;
 
-      // Set token expiration time to 30 minutes from now
-      const tokenExpiration = new Date();
-      tokenExpiration.setMinutes(tokenExpiration.getMinutes() + 1);
-      user.resetTokenExpiration = tokenExpiration;
+    // Set token expiration time to 30 minutes from now
+    const tokenExpiration = new Date(Date.now() + 1 * 60 * 1000); // 30 minutes in milliseconds
+    user.resetTokenExpiration = tokenExpiration;
 
-      await user.save();
+    await user.save();
 
-      res.status(200).json({ message: 'OTP sent to your email for password reset.' });
+    // Convert token expiration time to Indian Standard Time (IST)
+    const indianTime = tokenExpiration.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+    res.status(200).json({ message: 'OTP sent to your email for password reset.', tokenExpiration: indianTime });
   } catch (error) {
-      console.error('Error sending password reset OTP:', error);
-      res.status(500).json({ message: 'Internal server error or OTP Expries' });
+    console.error('Error sending password reset OTP:', error);
+    res.status(500).json({ message: 'Internal server error or OTP Expires' });
   }
 };
+
 
 
 // Function to compare OTPs
@@ -152,33 +155,37 @@ const resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
   try {
-      const user = await User.findOne({ email });
+    const user = await User.findOne({ email });
 
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-      const isOTPValid = await compareOTP(otp, user.resetOTP);
+    // Check if the reset token has expired
+    if (user.resetTokenExpiration && new Date() > new Date(user.resetTokenExpiration)) {
+      return res.status(400).json({ message: 'Token expired. Please request a new one.' });
+    }
 
-      if (!isOTPValid) {
-          return res.status(400).json({ message: 'Invalid OTP' });
-      }
+    const isOTPValid = await compareOTP(otp, user.resetOTP);
 
-      // const salt = await bcrypt.genSalt(10);
-      // const hashedPassword = await bcrypt.hash(newPassword, salt);
-      user.password =  newPassword;
-      user.resetOTP = null;
-      user.resetTokenExpiration = null;
-      await user.save();
+    if (!isOTPValid) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
 
-      res.status(200).json({ message: 'Password reset successful' });
+    user.password = newPassword;
+    user.resetOTP = null;
+    user.resetTokenExpiration = null;
+    await user.save();
+
+    // Convert token expiration time to Indian Standard Time (IST) if available
+    const tokenExpiration = user.resetTokenExpiration ? user.resetTokenExpiration.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'N/A';
+
+    res.status(200).json({ message: 'Password reset successful', tokenExpiration });
   } catch (error) {
-      console.error('Error resetting password:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-
 
 
 

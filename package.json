@@ -16,6 +16,7 @@
     "http-errors": "~1.6.3",
     "https-browserify": "^1.0.0",
     "jade": "~1.11.0",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.4.0",
     "mongoose": "^8.2.0",
     "morgan": "~1.9.1",
