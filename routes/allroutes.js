@@ -16,7 +16,7 @@ router.post("/token",usercontroller.token)
 
 router.post("/patients",patientcontroller.createPatient)
 router.get("/patients/:patientId",patientcontroller.getPatientById)
-router.put("/patients/:patientId",patientcontroller.updatePatient)
+router.put("/updatepatients/:patientId", patientcontroller.updatePatient)
 router.delete('/patients/:patientId',patientcontroller.deletePatient)
 
 

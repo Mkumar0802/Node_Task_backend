@@ -39,40 +39,38 @@ async function getPatientById(req, res) {
 
 
 
-// Update operation
+// Function to update a patient
 async function updatePatient(req, res) {
   try {
-    const { patientId } = req.params; // Extract patientId from request parameters
-    const newData = req.body; // Extract updated data from request body
-    
-    // Make sure patientId is valid
-    if (!patientId) {
-      return res.status(400).json({ error: 'Patient ID is required for updating' });
-    }
-    
-    // Find the patient record by ID
-    const patient = await getPatientById(patientId);
-    console.log(`Updating patient with ID ${patientId}...`);
-    
-    // Create a log entry
+      const { patientId } = req.params; // Get the patient ID from the request URL
+      const newData = req.body; // Assuming all the updated data is sent in the request body
+
+      // Find the patient and update it with new data
+      const [updated] = await Patient.update(newData, {
+          where: { patientId: patientId }
+      });
+
+      if (updated) {
+          const updatedPatient = await Patient.findByPk(patientId);
+
+        // Create a log entry
     await PatientLog.create({
       patientId: patientId,
       action: 'update',
       timestamp: new Date()
     });
 
-    // Update the patient record
-    await patient.update(newData);
-    
-    console.log(`Patient with ID ${patientId} updated successfully`);
-    return res.status(200).json(patient); // Send updated patient record as response
+
+
+          return res.status(200).json({ patient: updatedPatient });
+      } else {
+          throw new Error('Patient not found');
+      }
   } catch (error) {
-    return res.status(500).json({ error: `Error updating patient: ${error.message}` });
+      console.error(error);
+      return res.status(500).json({ error: error.message });
   }
 }
-
-
-
 
 
 

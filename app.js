@@ -29,6 +29,7 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 // app.use('/api', controller);
 app.use("/",routes)
+app.use(express.json());
 
 
 
