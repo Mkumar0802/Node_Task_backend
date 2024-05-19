@@ -1,15 +1,24 @@
-var mysql = require("mysql");
+const mysql = require('mysql2/promise');
 
+const pool = mysql.createPool({
+  host: "162.241.123.158",
+  user: "theatgg6_shg",
+  password: "r3pbWhs8psb5nitZjlpDvg",
+  database: "theatgg6_testnode",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
+// Test the connection
+(async () => {
+  try {
+    const connection = await pool.getConnection();
+    console.log('Connected to database.');
+    connection.release(); // release connection back to the pool
+  } catch (err) {
+    console.error('Database connection failed:', err.stack);
+  }
+})();
 
-
-const config = {
-  mysql_pool: mysql.createPool({
-    host: "sql6.freemysqlhosting.net", // Your MySQL host IP address
-    user: "sql6693612", // Your MySQL username
-    password: "LVnIcRn1rc", // Your MySQL password
-    database: "sql6693612" // Your MySQL database name
-  })
-};
-
-module.exports = config;
+module.exports = pool;
