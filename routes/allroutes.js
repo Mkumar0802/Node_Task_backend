@@ -30,5 +30,6 @@ router.post("/start",bikecontroller.startAssembly);
 router.post("/end",bikecontroller.endAssembly)
 router.get('/bikes-assembled',bikecontroller.getBikesAssembled);
 router.get('/employee-production',bikecontroller.getEmployeeProduction);
+router.get ('/assemblydata',bikecontroller.assemblydata)
 
 module.exports = router

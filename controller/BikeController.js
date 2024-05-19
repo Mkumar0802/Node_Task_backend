@@ -138,6 +138,27 @@ const login = async (req, res) => {
   };
 
 
+  const assemblydata = async (req, res) => {
+    const { date } = req.query;
+    if (!date) {
+        return res.status(400).send('Date parameter is required');
+    }
+
+    try {
+        const query = `
+            SELECT session_id, employee_id, bike_number, assembly_time, assembly_date, start_time, end_time 
+            FROM assembly_sessions 
+            WHERE assembly_date = ? 
+            GROUP BY session_id`;
+
+        const [rows] = await pool.query(query, [date]);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching assembly data:', error);
+        res.status(500).send('Internal Server Error');
+    }
+};
+
 
 
 
@@ -146,7 +167,9 @@ module.exports = {
     endAssembly,
     startAssembly,
     getBikesAssembled,
-    getEmployeeProduction
+    getEmployeeProduction,
+    assemblydata,
+    getBikesAssembled,
 
 
   };
