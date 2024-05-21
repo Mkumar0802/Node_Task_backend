@@ -110,32 +110,36 @@ const getEmployeeProduction = async (req, res) => {
 };
 
 
+
+// Updated login function in backend
 const login = async (req, res) => {
     const { username, password } = req.body;
     console.log("Request body:", req.body);
-  
+
     if (!username || !password) {
-      return res.status(400).json({ success: false, message: 'Username and password are required' });
+        return res.status(400).json({ success: false, message: 'Username and password are required' });
     }
-  
+
     console.log("Username:", username, "Password:", password);
-  
+
     const query = 'SELECT * FROM employees WHERE username = ? AND password = ?';
-  
+
     try {
-      const [results] = await pool.query(query, [username, password]);
-      console.log("Query results:", results);
-  
-      if (results.length > 0) {
-        res.json({ success: true, employee: results[0] });
-      } else {
-        res.status(401).json({ success: false, message: 'Invalid username or password' });
-      }
+        const [results] = await pool.query(query, [username, password]);
+        console.log("Query results:", results);
+
+        if (results.length > 0) {
+            const user = results[0];
+            res.json({ success: true, employee: user, isAdmin: user.username === 'admin' });
+        } else {
+            res.status(401).json({ success: false, message: 'Invalid username or password' });
+        }
     } catch (err) {
-      console.error('Database query failed:', err);
-      res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('Database query failed:', err);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
-  };
+};
+
 
 
   const assemblydata = async (req, res) => {
